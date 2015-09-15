@@ -84,7 +84,7 @@ tt + aes(color=year)
 Color by country. Notice assignment and evaluation combined.
 
 ```{r}
-(ttt <- tt + aes(color=country))
+(ttt <- tt + aes(color=country) + geom_path())
 ```
 
 Remove useless legend to spread out plots.
