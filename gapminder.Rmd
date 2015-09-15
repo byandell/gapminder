@@ -1,0 +1,86 @@
+---
+title: "Gapminder"
+author: "Brian S Yandell"
+date: "September 15, 2015"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+```
+Read gapminder data.
+
+```{r}
+gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
+str(gap)
+```
+
+Some initial plots with ggplot. Refining to 
+
+```{r}
+## Simple plot. Just do something.
+ggplot(gap, aes(x=pop, y=country)) + geom_point()
+
+## Try different variables -- both continuous.
+ggplot(gap, aes(x=pop, y=lifeExp)) + geom_point()
+
+## Use log10 scale.
+ggplot(gap, aes(x=log10(pop), y=log10(lifeExp))) + geom_point()
+
+## Add color. Not that interesting.
+ggplot(gap, aes(x=log10(pop), y=log10(lifeExp), color=year)) + geom_point()
+
+## Change horizontal variable. Still not very interesting.
+ggplot(gap, aes(x=log10(gdpPercap), y=log10(lifeExp), color=year)) + geom_point()
+
+## Focus on China and US. Use color for country. Add path.
+ggplot(gap[gap$country %in% c("China","United States"),], aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) + geom_point() + geom_path()
+
+## Make lines and points proportional to pop.
+ggplot(gap[gap$country %in% c("China","United States"),], 
+       aes(x=log10(gdpPercap), y=log10(lifeExp), 
+           color=country, size=pop)) + 
+  geom_point() + geom_path()
+
+## Make points proportional to pop.
+ggplot(gap[gap$country %in% c("China","United States"),], 
+       aes(x=log10(gdpPercap), y=log10(lifeExp), 
+           color=country)) + 
+  geom_point(aes(size=pop)) + geom_path()
+
+## Make points relative to pop.
+ggplot(gap[gap$country %in% c("China","United States"),], 
+       aes(x=log10(gdpPercap), y=log10(lifeExp), 
+           color=country)) + 
+  geom_point(aes(size=log10(pop))) + geom_path()
+
+ggplot(gap[gap$country %in% c("China","United States"),], 
+       aes(x=log10(gdpPercap), y=log10(lifeExp), 
+           color=country)) + 
+  geom_point(aes(size=log10(pop))) + geom_path() +
+  xlab("log10 of GDP Per Capita") + ylab("log10 of Life Expectancy") +
+  ggtitle("Gapminder for China and US")
+```
+
+Tiling by continent.
+
+```{r}
+ggplot(gap, aes(x=log10(gdpPercap), y=log10(lifeExp), color=year)) + 
+  geom_point() + facet_wrap(~continent)
+
+ggplot(gap, aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) + 
+  geom_point() + facet_wrap(~continent) + 
+  geom_path()
+
+ggplot(gap, aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) + 
+  geom_point() + facet_wrap(~continent) + 
+  geom_path() + theme(legend.position="none")
+
+## Adjust size by pop; make points hollow. Cannot get hollow to work.
+ggplot(gap, 
+       aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) +
+  geom_point(aes(size=log10(pop))) + scale_shape(solid = FALSE) +
+  facet_wrap(~continent) + 
+  geom_path() + theme(legend.position="none")
+
+```
