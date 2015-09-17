@@ -1,0 +1,32 @@
+---
+title: "gapfinal"
+author: "Brian S Yandell"
+date: "September 17, 2015"
+output: html_document
+---
+
+Attach any libraries.
+
+```{r echo=FALSE}
+library(ggplot2)
+```
+
+Read gapminder data.
+
+```{r echo=FALSE}
+gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
+```
+
+Assign `pp` as the plot I want.
+
+```{r}
+pp <- ggplot(gap[gap$country %in% c("China","United States"),], aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) + geom_path()
+```
+
+Pretty Picture.
+
+```{r}
+pp + geom_point(aes(size=log10(pop))) +
+  xlab("log10 of GDP Per Capita") + ylab("log10 of Life Expectancy") +
+  ggtitle("Gapminder for China and US")
+```
