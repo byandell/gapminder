@@ -26,7 +26,7 @@ pp <- ggplot(gap[gap$country %in% c("China","United States"),], aes(x=log10(gdpP
 Pretty Picture.
 
 ```{r}
-pp + geom_point(aes(size=log10(pop))) +
+pp + geom_point(aes(size=log10(pop),shape="1")) +
   xlab("log10 of GDP Per Capita") + ylab("log10 of Life Expectancy") +
   ggtitle("Gapminder for China and US")
 ```

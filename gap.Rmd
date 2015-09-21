@@ -93,8 +93,8 @@ Remove useless legend to spread out plots.
 (ttt <- ttt + theme(legend.position="none"))
 ```
 
-Adjust size by pop; make points hollow. Cannot get hollow to work.
+Adjust size by pop; make points hollow.
 
 ```{r}
-ttt +  geom_point(aes(size=log10(pop))) + scale_shape(solid = FALSE)
+ttt +  geom_point(aes(size=log10(pop), shape="1"))
 ```
