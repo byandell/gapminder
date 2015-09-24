@@ -1,5 +1,5 @@
 ---
-title: "gapfinal"
+title: "Gapminder with dplyr, tidyr, ggplot2"
 author: "Brian S Yandell"
 date: "September 17, 2015"
 output: html_document
@@ -23,7 +23,7 @@ gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
 
 Here is a simple table -- compare `head(gap)` with `tbl_df(gap)`.
 
-``{r}
+```{r}
 head(gap)
 tbl_df(gap)
 ```
