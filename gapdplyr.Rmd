@@ -1,0 +1,96 @@
+---
+title: "gapfinal"
+author: "Brian S Yandell"
+date: "September 17, 2015"
+output: html_document
+---
+
+Attach any libraries.
+
+```{r echo=FALSE}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+Read gapminder data.
+
+```{r echo=FALSE}
+gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
+```
+
+Here is a simple table -- compare `head(gap)` with `tbl_df(gap)`.
+
+``{r}
+head(gap)
+tbl_df(gap)
+```
+
+Now use `dplyr` pure functions `pipe`, `filter`, `select` and `arrange` to focus on variables plotted below for US and China.
+
+```{r}
+gap %>%
+  filter(country %in% c("China","United States")) %>%
+  select(year, country, gdpPercap, lifeExp) %>%
+  arrange(year) %>%
+  tbl_df
+```
+
+Reshape data using `spread` (from `tidyr`) to compare `lifeExp` of two countries. Notice that I `mutate` (from `dplyr`) to change the order of US and China and change the label on `US`.
+
+```{r}
+gap %>%
+  filter(country %in% c("China","United States")) %>%
+  mutate(country = ordered(country, 
+    levels=c("United States","China"),
+    labels=c("US","China"))) %>%
+  select(year, country, lifeExp) %>%
+  spread(country, lifeExp)
+```
+
+Create `pp` as the basic plot I want in three different ways. Klunky old way (as in gapfinal.Rmd):
+
+```{r}
+pp1 <- ggplot(gap[gap$country %in% c("China","United States"),], aes(x=log10(gdpPercap), y=log10(lifeExp), color=country)) + geom_path()
+```
+
+More elegant use of `filter` pure function:
+
+```{r}
+pp2 <- ggplot(filter(gap, country %in% c("China","United States")),
+  aes(x=log10(gdpPercap), 
+    y=log10(lifeExp), color=country)) + 
+  geom_path()
+```
+
+Even more elegant use of pipes:
+
+```{r}
+pp3 <- gap %>% 
+  filter(country %in% c("China","United States")) %>%
+  ggplot(
+    aes(x=log10(gdpPercap), 
+      y=log10(lifeExp), color=country)) + 
+    geom_path()
+```
+
+Show these three (code hidden--advanced topic using package `grid`).
+
+```{r, echo=FALSE,fig.height=6.5,fig.width=10}
+suppressPackageStartupMessages(library(grid))
+pushViewport(viewport(layout = grid.layout(3,1)))
+print(pp1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(pp2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+print(pp3, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+```
+
+Now pretty picture with explanatory labels and sized open points.
+
+```{r}
+pp3 + geom_point(aes(size=log10(pop)), shape=1) +
+  xlab("log10 of GDP Per Capita") + 
+  ylab("log10 of Life Expectancy") +
+  ggtitle("Gapminder for China and US")
+```
