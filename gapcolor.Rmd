@@ -210,3 +210,5 @@ Grey scale on Americas using median.
 ```{r}
 country.grey(gap, "Americas", median)
 ```
+
+You can play with colors, but there are many challenges with picking color pallettes that work well. Often less is more according to the pros.
