@@ -167,9 +167,9 @@ country.reorder(gap, "asia", 1952)
 country.reorder(gap, "Asia", 0)
 ```
 
-## Adding color as an option to function.
+## Adding grey scale as an option to function.
 
-This is similar to using Jenny's colors. However, the idea here is to have a vector of color values without labels. The first color is for the 
+This uses a grey scale based on the year.to.order. Here we also allow year.to.order to be a function (such as `median`) rather than a particular year.
 
 ```{r}
 country.grey <- function(gap, cont.name, year.to.order,
