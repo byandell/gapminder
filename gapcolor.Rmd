@@ -1,0 +1,212 @@
+---
+title: "gapcolor"
+author: "Brian S Yandell"
+date: "October 7, 2015"
+output: html_document
+---
+
+This Rmd explores colors with gapminder data. It also explores use of functions.
+
+Attach any libraries.
+
+```{r echo=FALSE}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+Read gapminder data.
+
+```{r echo=FALSE}
+gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
+```
+
+Pull out asia. Be sure to drop country levels no longer used.
+
+```{r}
+asia <- gap %>% filter(continent == "Asia") %>% 
+  select(country, year, lifeExp) %>% droplevels
+```
+
+First plot to look.
+
+```{r}
+ggplot(asia, aes(x=year, y=lifeExp, color=country)) + geom_line(lwd=1)
+```
+
+## Change colors to Jenny Bryan's pallette.
+
+Get Jenny's colors.
+
+```{r}
+## http://stat545-ubc.github.io/block019_enforce-color-scheme.html
+gdURL <- "http://www.stat.ubc.ca/~jenny/notOcto/STAT545A/examples/gapminder/data/gapminderCountryColors.txt"
+countryColors <- read.delim(file = gdURL, as.is = 3) # protect color
+jColors <- countryColors$color
+names(jColors) <- countryColors$country
+```
+
+Now scale color manually.
+
+```{r}
+ggplot(asia, aes(x=year, y=lifeExp, color=country)) +
+  geom_line(lwd=1) + theme(legend.position = "none") +
+  scale_color_manual(values = jColors)
+```
+
+## Reorder countries by `lifeExp` in 1952.
+
+```{r}
+ord <- asia %>% filter(year == 1952) %>% select(lifeExp) %>% order
+asia$country <- ordered(asia$country, 
+                        levels = levels(asia$country)[ord])
+ggplot(asia, aes(x=year, y=lifeExp, color=country)) + geom_line(lwd=1)
+```
+
+Now let's make this a function so we could do on other continents.
+
+```{r}
+country.order <- function(gap, cont.name, year.to.order) {
+  ## Pull my continent.
+  my.cont <- gap %>% filter(continent == cont.name) %>% 
+    select(country, year, lifeExp) %>% droplevels
+  ## Get numerical order using year.to.order
+  ord <- my.cont %>% filter(year == year.to.order) %>% 
+    select(lifeExp) %>% order
+  ## Note  use of factor inside levels to restrist to countries present.
+  my.cont$country <- ordered(my.cont$country, 
+                             levels = levels(my.cont$country)[ord])
+  ## Return data frame.
+  my.cont
+}
+```
+
+Now try using on Asia with year 1952.
+
+```{r}
+asia <- country.order(gap, "Asia", 1952)
+ggplot(asia, aes(x=year, y=lifeExp, color=country)) + geom_line(lwd=1)
+```
+
+## Another more elegant way using reorder.
+
+Here is a simpler way to do it.
+
+```{r}
+Asia <- gap %>% filter(continent == "Asia") %>% 
+  select(country, year, lifeExp) %>% droplevels
+myfun <- function(x) x[1]
+ggplot(Asia, aes(x=year, y=lifeExp, 
+                 color=reorder(country, lifeExp, myfun))) +
+  geom_line(lwd=1)
+```
+
+Here it is all in one line.
+
+```{r}
+ggplot(gap %>% filter(continent == "Asia") %>% 
+         select(country, year, lifeExp) %>% droplevels, 
+       aes(x=year, y=lifeExp,
+           color=reorder(country, lifeExp, function(x) x[1]))) +
+  geom_line(lwd=1)
+```
+
+Now make a function. This one returns the plot
+
+```{r}
+country.reorder <- function(gap, cont.name, year.to.order) {
+  years <- unique(gap$year)
+  year.to.order <- match(year.to.order, years)
+  myfun <- function(x) x[year.to.order]
+  ggplot(gap %>%                           ## pull out continent.
+           filter(continent == cont.name) %>% 
+           select(country, year, lifeExp) %>% droplevels, 
+         aes(x=year, y=lifeExp,              ## reorder by lifeExp
+             color=reorder(country, lifeExp, myfun))
+       ) +
+  geom_line(lwd=1)
+}
+```
+
+Now plot as you wish.
+
+```{r}
+country.reorder(gap, "Asia", 1952)
+```
+
+## Some error checking.
+
+What is missing? What if year.to.date is not in range?
+
+```{r}
+country.reorder <- function(gap, cont.name, year.to.order) {
+  years <- unique(gap$year)
+  year.to.order <- match(year.to.order, years)
+  
+  ## Put some checks in.
+  stopifnot(!is.na(year.to.order))
+  stopifnot(cont.name %in% levels(gap$continent))
+  
+  myfun <- function(x) x[year.to.order]
+  ggplot(gap %>%                           ## pull out continent.
+           filter(continent == cont.name) %>% 
+           select(country, year, lifeExp), 
+         aes(x=year, y=lifeExp,              ## reorder by lifeExp
+             color=reorder(country, lifeExp, myfun))
+       ) +
+  geom_line(lwd=1)
+}
+```
+
+Try it out. The following generate errors.
+
+```
+country.reorder(gap, "asia", 1952)
+country.reorder(gap, "Asia", 0)
+```
+
+## Adding color as an option to function.
+
+This is similar to using Jenny's colors. However, the idea here is to have a vector of color values without labels. The first color is for the 
+
+```{r}
+country.grey <- function(gap, cont.name, year.to.order,
+                            color.range = c(0.2,0.8)) {
+  
+  ## Put some checks in.
+  stopifnot(cont.name %in% levels(gap$continent))
+
+  ## Get fancier on order -- let it be a function.
+  if(is.function(year.to.order))
+    myfun <- year.to.order
+  else {
+    years <- unique(gap$year)
+    year.to.order <- match(year.to.order, years)
+    stopifnot(!is.na(year.to.order))
+    myfun <- function(x) x[year.to.order]
+  }
+
+  ggplot(gap %>%                           ## pull out continent.
+           filter(continent == cont.name) %>% 
+           select(country, year, lifeExp) %>% droplevels, 
+         aes(x=year, y=lifeExp,              ## reorder by lifeExp
+             color=reorder(country, lifeExp, myfun))
+       ) +
+    geom_line(lwd=1) + theme(legend.position = "none") +
+    scale_color_grey(start = max(color.range), end = min(color.range))
+}
+```
+
+Grey scale on Asia using 1952.
+
+```{r}
+country.grey(gap, "Asia", 1952)
+```
+
+Grey scale on Americas using median.
+
+```{r}
+country.grey(gap, "Americas", median)
+```
