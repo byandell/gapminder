@@ -41,7 +41,8 @@ gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
 Beyond this, make sure your script runs. Try it in an empty workspace. Still hard to catch non-standard packages. Another two things:
 
 * Avoid `rm(list=ls())` in your script. Just work in an empty workspace.
-* Avoid `attach(gap)`. This is no longer needed.
+* Avoid `attach(gap)` and `detach()`. This is no longer needed.
+* Avoid `T` and `F` as values or names. Use `TRUE` and `FALSE`.
 * Use `<-` for assignments rather than `=`. The equals has a key role in providing values to function arguments, and mistakes with `=` can be difficult to detect. Be clear about `=` vs. `==` as well.
 
 ## Graphics and tables.
@@ -111,6 +112,14 @@ This second rendering uses pipes, `lag()` and `summarize()`. Now it is clearer t
 offset2 <- function(dat) {
 	dat %>% 
     summarize(life.offset = min(lifeExp - lag(lifeExp), na.rm = TRUE))
+}
+```
+
+Even more concise is to use the `diff` function instead of `lag`:
+
+```{r}
+offset3 <- function(dat) {
+	dat %>% summarize(life.offset = min(diff(lifeExp)))
 }
 ```
 
