@@ -184,4 +184,6 @@ all3 <- gap %>% group_by(country) %>% dead3
 str(all3)
 ```
 
-This second approach is cleaner and more compact, hence easier to read. Further, the function is readily used in a pipe following `group_by`, rather than buried in a for loop.
+This second approach is cleaner and more compact, hence easier to read. Further, the function is readily used in a pipe following `group_by`, rather than buried in a `for` loop.
+
+Another minor thing to notice: `dead3` will return 0 for Albania, but does not include it in the result. That is, it filters out countries which return 0. Not sure why that is exactly, but it is what we want here.
