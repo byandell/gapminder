@@ -1,0 +1,187 @@
+---
+title: "gapfunction"
+author: "Brian S Yandell"
+date: "October 22, 2015"
+output: html_document
+---
+
+## Overview
+
+This is meant as feedback on gapminder homework and on development of functions. While there are a number of technical aspects, one main point is that the ultimate goal is to study patterns in data, in context of the reasons why the data were originally collected and the questions being asked. Think about sharing your results with someone you know outside of Statistics (family member? friend?). What would they want to learn?
+
+## Presentation and Rmd file
+
+Specifically, think about the presentation. Yes, you want to demonstrate to me that you can do things. But tables of plots are seldom useful, and repeat plots, or plots with table next to them, waste space.
+
+And think about the design. For instance, Oceana has 24 measurements because there are two countries each with 12 yearly measurements. Just saying there are 24 in Oceana misses the point. Design should inform plots, which should give insight on later analysis.
+
+One of the challenges of using someone else's course notes and homework is that my emphasis might be different. While it is useful to know how to pull out `max` and `min` overall using `dplyr` tools, these are often misleading statistics. That is, they depend heavily on a few observations (or one country in a continent). Again, think about context.
+
+A minor point is that numbers and other characteristics you want to refer to in text around code can almost always be derived from your objects rather than hard-wired in. Use the back-quote r convention: \` r length(1:10)\` yields `r length(1:10)`. 
+
+## Preliminaries
+
+First on libraries. Below are the libraries I expect you to be using. Several students are still attaching other libraries. While these are useful, they may not be on my machine. If not, your Rmd will break and cause me to spend time fixing it rather than giving you constructive feedback. IMPORTANT: if you use `plyr` and `dplyr` together, you must FIRST load `plyr`. `dplyr` is the newer version, but some of us still use some of the older tools in `plyr`
+
+```{r}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(plyr)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+Read gapminder data. Several people are still referring to local copies. This is tricky to catch, so look carefully!
+
+```{r echo=FALSE}
+gap <- read.delim("http://tiny.cc/gapminder", sep="\t")
+```
+
+Beyond this, make sure your script runs. Try it in an empty workspace. Still hard to catch non-standard packages. Another two things:
+
+* Avoid `rm(list=ls())` in your script. Just work in an empty workspace.
+* Avoid `attach(gap)`. This is no longer needed.
+* Use `<-` for assignments rather than `=`. The equals has a key role in providing values to function arguments, and mistakes with `=` can be difficult to detect. Be clear about `=` vs. `==` as well.
+
+## Graphics and tables.
+
+Now on to graphics. Please focus on learning `ggplot2` and Hadley tools. Several of you are still relying on basic `plot`, which is based on 50-year old technology. As one student pointed out, learning and using these tools is actually saving him time on other projects.
+
+```{r}
+layout(matrix(1:6,3,2,byrow=T))
+tmp <- levels(gap$continent)
+for (i in 1:length(tmp)) {
+    name <- tmp[i]
+    data <- gap[gap$continent==name,]
+    plot(data$year,data$lifeExp,main=name, xlab="Year", ylab="Life expectancy")
+}
+```
+
+Not only is this clumsy, but the plot itself is cramped. You would have to do considerable work to make the plot fill the page better and be helpful. Here is a more compact way with ggplot:
+
+```{r}
+ggplot(gap, aes(x=year, y=lifeExp)) + geom_point() + facet_wrap(~continent)
+```
+
+Now both plots could be improved by jittering the years since there are so many points. Also, I will add color for countries and connect the dots. Further, I spread out the command to multiple lines to make it easier to read.
+
+```{r}
+ggplot(gap, aes(x=year, y=lifeExp, color=country)) + 
+  geom_jitter() + 
+  geom_line() +
+  facet_wrap(~continent)
+```
+
+Tables often involve reshaping data. However, there is no need to store the reshaped data. Here we summarize data and create a plot:
+
+```{r}
+continent.lifeExp <- gap %>% group_by(continent, year) %>% 
+  summarize(median.lifeExp = median(lifeExp))
+ggplot(continent.lifeExp, 
+       aes(x=year, y=median.lifeExp, color=continent)) +
+  geom_point() + geom_line()
+```
+
+Now we create a table without saving the spread data:
+
+```{r}
+knitr::kable(continent.lifeExp %>% spread(year, median.lifeExp),
+             digits = 1)
+```
+
+## Functions.
+
+Use functions to simplify your code and avoid hard-wiring. You never should have to provide the dimensions of an object.
+
+Use spaces and indentation liberally to make code readable. The example above with ggplot show how multiple function additions to `ggplot` build out the desired graph. Spaces after commas and between assignments at pipes `%>%` help reader understand code flow.
+
+The following function is designed for one country, but it has several problems. The goal is to find change in life expectance between adjacent years for a country. Student knew there were 12 years, so this is hardwired in. Better to use `nrow(dat)` at least. Even better to use the `dplyr` function `lag()`. The other main problem is that code is so compact that it takes some time to figure out what it does.
+
+```{r}
+offset1=function(dat){
+  lag.lifeExp=c(0,dat$lifeExp[1:11])
+  setNames(min(dat$lifeExp-lag.lifeExp),"life.offset")
+}
+```
+
+This second rendering uses pipes, `lag()` and `summarize()`. Now it is clearer that the goal is to find the minimum of change in `lifeExp`.
+
+```{r}
+offset2 <- function(dat) {
+	dat %>% 
+    summarize(life.offset = min(lifeExp - lag(lifeExp), na.rm = TRUE))
+}
+```
+
+Now, the student did an elegant job of using this function using `ddply` from `plyr`.
+
+```{r}
+system.time(dat <- ddply(gap, ~ country, offset1))
+str(dat)
+```
+
+Here is another version using `dplyr` tools with the improved code. Recall that `dplyr` is meant as a rethinking and improvement of `plyr`.
+
+```{r}
+system.time(dat <- gap %>% group_by(country) %>% offset2)
+str(dat)
+```
+
+Here is a more complicated function.
+
+```{r}
+dead1 = function(data, this_country_name) {
+  subset_data = data %>% filter(country == this_country_name) %>% 
+    mutate(dead = pop - lag(pop))
+  output = subset_data %>% filter(dead < 0) %>%
+    summarise(dead_times = n()) %>% 
+    mutate(country = this_country_name)
+}
+```
+
+Still using `=` instead of `<-`, but notice the use of the whole gap data with the name of a country. The function has to `filter` out that one country, proceed with its business, and then adds back the country name. [Note that function ends with an assignment. While R might catch this, it would be cleaner to have `output` on its own at end, or eliminate the `output =`.] Here is how this function was used:
+
+```{r}
+country.length = length(levels(gap$country))
+all1 = data.frame()
+for (i in 1:country.length) {
+  current_country = dead1(gap, levels(gap$country)[i])
+  all1 = bind_rows(all1, current_country)
+}
+str(all1 %>% filter(dead_times > 0))
+```
+
+Note the inefficient use of a `for` loop and initialization of an empty data frame. With this function, it would be possible to apply it to a vector of country names.
+
+Still, something important is gained. The code is designed to return the `dead_times` for each country, and the details of how that is done are in the function `dead1`. If these were in the `for` loop, the code would be much messier:
+
+```{r}
+country.length = length(levels(gap$country))
+all2 <- data.frame()
+for (i in 1:country.length) {
+  this_country_name <- levels(gap$country)[i]
+  subset_data <- gap %>% filter(country == this_country_name) %>% 
+      mutate(dead = pop - lag(pop))
+  current_country <- subset_data %>% filter(dead < 0) %>%
+    summarise(dead_times = n()) %>% 
+    mutate(country = this_country_name)
+  all2 = bind_rows(all2, current_country)
+}
+str(all2 %>% filter(dead_times > 0))
+```
+
+It is much cleaner to design a function for one country's worth of data, then apply to that. Here is an example:
+
+```{r}
+dead3 <- function(country_data) {
+  country_data %>% 
+    mutate(dead = pop - lag(pop)) %>%
+    filter(dead < 0) %>%
+    summarize(dead_times = n())
+}
+all3 <- gap %>% group_by(country) %>% dead3
+str(all3)
+```
+
+This second approach is cleaner and more compact, hence easier to read. Further, the function is readily used in a pipe following `group_by`, rather than buried in a for loop.
