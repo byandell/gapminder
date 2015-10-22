@@ -74,6 +74,16 @@ ggplot(gap, aes(x=year, y=lifeExp, color=country)) +
   facet_wrap(~continent)
 ```
 
+Here is a further improvement by dropping legend and putting all continents side by side.
+
+```{r}
+ggplot(gap, aes(x=year, y=lifeExp, color=country)) + 
+  geom_jitter() + 
+  geom_line() +
+  facet_grid(~continent) +
+  theme(legend.position = "none")
+```
+
 Tables often involve reshaping data. However, there is no need to store the reshaped data. Here we summarize data and create a plot:
 
 ```{r}
@@ -196,3 +206,13 @@ str(all3)
 This second approach is cleaner and more compact, hence easier to read. Further, the function is readily used in a pipe following `group_by`, rather than buried in a `for` loop.
 
 Another minor thing to notice: `dead3` will return 0 for Albania, but does not include it in the result. That is, it filters out countries which return 0. Not sure why that is exactly, but it is what we want here.
+
+Here is an improvement suggested by Doug.
+
+```{r}
+dead4 <- function(country_data) {
+  country_data %>% summarize(dead_times = sum(diff(pop) < 0))
+}
+all4 <- gap %>% group_by(country) %>% dead4 %>% filter(dead_times > 0)
+str(all4)
+```
